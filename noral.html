@@ -1,0 +1,786 @@
+!DOCTYPE html>
+<ht<ml lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NORAL - Nomor Absen Nilai</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f3f4f6; height: 100vh; overflow: hidden; }
+    .app { display: flex; height: 100vh; font-size: 14px; }
+
+    .sidebar { width: 190px; background: #1a3a6b; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 18px 14px 14px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 36px; height: 36px; background: #3a7bd5; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-icon svg { width: 20px; height: 20px; fill: white; }
+    .app-name { font-size: 16px; font-weight: 700; color: white; }
+    .app-sub { font-size: 10px; color: rgba(255,255,255,0.55); }
+    .sidebar-nav { padding: 14px 0; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 10px 14px; cursor: pointer; color: rgba(255,255,255,0.65); font-size: 13px; border-left: 3px solid transparent; transition: all 0.15s; user-select: none; }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.13); color: white; border-left-color: #5ba3f5; }
+    .nav-item svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+    .nav-divider { border-top: 1px solid rgba(255,255,255,0.1); margin: 6px 0; }
+    .nav-item.print-nav:hover { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    .nav-item.print-nav.active { border-left-color: #f59e0b; background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .excel-badge { margin: 0 12px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 10px; }
+    .excel-badge .badge-label { font-size: 10px; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+    .badge-file { font-size: 11px; color: #7dd3aa; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+    .dot-green { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; flex-shrink: 0; }
+
+    .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 13px 22px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar-title { font-size: 15px; font-weight: 600; color: #111827; }
+    .btn-print-top { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; background: #f59e0b; color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; }
+    .btn-print-top:hover { background: #d97706; }
+    .btn-print-top svg { width: 14px; height: 14px; fill: white; }
+    .page { flex: 1; overflow-y: auto; padding: 22px; display: none; }
+    .page.active { display: block; }
+
+    /* FORM */
+    .form-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px; max-width: 580px; }
+    .form-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 18px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .form-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+    .form-input { height: 38px; padding: 0 11px; border: 1px solid #d1d5db; border-radius: 7px; background: white; color: #111827; font-size: 13px; outline: none; font-family: inherit; }
+    .form-input:focus { border-color: #3a7bd5; box-shadow: 0 0 0 3px rgba(58,123,213,0.1); }
+    .form-input.highlight { background: #f0fdf4; border-color: #4ade80; color: #166534; font-weight: 500; }
+    .form-select { height: 38px; padding: 0 11px; border: 1px solid #d1d5db; border-radius: 7px; background: white; color: #111827; font-size: 13px; outline: none; font-family: inherit; cursor: pointer; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+    .file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
+    .file-input-label { height: 38px; padding: 0 11px; border: 1px solid #d1d5db; border-radius: 7px; background: white; color: #111827; font-size: 13px; display: flex; align-items: center; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .file-input-label:hover { border-color: #3a7bd5; background: #f9fafb; }
+    .file-input-label.has-file { color: #059669; }
+    .input-group { display: flex; gap: 7px; }
+    .btn-search { height: 38px; padding: 0 16px; background: #3a7bd5; color: white; border: none; border-radius: 7px; font-size: 13px; cursor: pointer; font-weight: 500; font-family: inherit; }
+    .btn-search:hover { background: #2e6bc4; }
+    .btn-save { width: 100%; height: 40px; background: #3a7bd5; color: white; border: none; border-radius: 7px; font-size: 13px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 6px; font-family: inherit; }
+    .btn-save:hover { background: #2e6bc4; }
+    .info-note { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 7px; padding: 9px 13px; font-size: 12px; color: #1d4ed8; margin-top: 13px; display: flex; align-items: center; gap: 7px; }
+    .toast { display: none; background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 7px; padding: 9px 13px; font-size: 12px; color: #065f46; margin-top: 12px; align-items: center; gap: 7px; }
+    .toast.show { display: flex; }
+
+    /* DATA */
+    .data-toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+    .search-input { height: 36px; padding: 0 11px; border: 1px solid #d1d5db; border-radius: 7px; background: white; color: #111827; font-size: 13px; outline: none; flex: 1; font-family: inherit; }
+    .kelas-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+    .kelas-tab { height: 32px; padding: 0 15px; border: 1px solid #d1d5db; border-radius: 20px; background: white; color: #6b7280; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .kelas-tab:hover { border-color: #3a7bd5; color: #3a7bd5; }
+    .kelas-tab.active { background: #3a7bd5; border-color: #3a7bd5; color: white; }
+    .kelas-info { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+    .kelas-badge { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 4px 11px; font-size: 12px; color: #1d4ed8; font-weight: 500; }
+    .count-badge { font-size: 12px; color: #9ca3af; }
+    .data-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 22px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 9px 11px; color: #6b7280; font-weight: 500; font-size: 12px; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 10px 11px; border-bottom: 1px solid #f3f4f6; color: #111827; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+    .edit-btn { background: white; border: 1px solid #d1d5db; border-radius: 5px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #6b7280; font-family: inherit; }
+    .edit-btn:hover { border-color: #3a7bd5; color: #3a7bd5; }
+    .empty-state { text-align: center; padding: 36px; color: #9ca3af; font-size: 13px; }
+    .reload-row { margin-top: 12px; text-align: right; }
+
+    /* PRINT PAGE */
+    .print-wrap { max-width: 680px; }
+    .print-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px; margin-bottom: 16px; }
+    .print-card-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .print-card-title svg { width: 17px; height: 17px; fill: #f59e0b; }
+    .print-opts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .popt-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 5px; }
+    .popt-select { width: 100%; height: 36px; padding: 0 10px; border: 1px solid #d1d5db; border-radius: 7px; background: white; color: #111827; font-size: 13px; outline: none; font-family: inherit; cursor: pointer; }
+    .popt-select:focus { border-color: #f59e0b; }
+    .btn-do-print { width: 100%; height: 42px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; font-family: inherit; }
+    .btn-do-print:hover { background: #d97706; }
+    .btn-do-print svg { width: 16px; height: 16px; fill: white; }
+    .preview-label { font-size: 11px; color: #9ca3af; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+    .preview-meta { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+    #print-preview table th { background: #1a3a6b; color: white; }
+    #print-preview table tr:nth-child(even) td { background: #f9fafb; }
+
+    /* ABOUT */
+    .about-card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 30px; max-width: 420px; text-align: center; }
+    .about-icon { width: 68px; height: 68px; background: #3a7bd5; border-radius: 14px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
+    .about-icon svg { width: 38px; height: 38px; fill: white; }
+    .about-name { font-size: 20px; font-weight: 700; color: #111827; }
+    .about-sub { font-size: 12px; color: #9ca3af; margin: 3px 0 5px; }
+    .about-version { font-size: 12px; color: #3a7bd5; font-weight: 500; }
+    .about-desc { font-size: 13px; color: #6b7280; line-height: 1.7; margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+
+    /* PRINT MEDIA */
+    @media print {
+      body { background: white; overflow: visible; height: auto; }
+      .app { display: block; height: auto; }
+      .sidebar, .topbar, .data-toolbar, .kelas-tabs, .kelas-info,
+      .reload-row, .edit-btn, .btn-print-top { display: none !important; }
+      .content { display: block; overflow: visible; }
+      .page { display: none !important; padding: 0; }
+      #print-area { display: block !important; }
+      .pdoc-title { font-size: 18px; font-weight: 700; color: #111827; font-family: 'Segoe UI', sans-serif; }
+      .pdoc-sub { font-size: 12px; color: #6b7280; margin-top: 3px; font-family: 'Segoe UI', sans-serif; }
+      .pdoc-line { border: none; border-top: 2px solid #1a3a6b; margin: 10px 0 16px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'Segoe UI', sans-serif; }
+      th { text-align: left; padding: 8px 10px; background: #1a3a6b !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+      tr:nth-child(even) td { background: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .pdoc-footer { margin-top: 24px; font-size: 11px; color: #9ca3af; text-align: right; font-family: 'Segoe UI', sans-serif; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // Ensure XLSX is available, dengan fallback CDN
+    if (typeof XLSX === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/xlsx@latest/dist/xlsx.full.min.js';
+      document.head.appendChild(script);
+    }
+  </script>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        </div>
+        <div><div class="app-name">NORAL</div><div class="app-sub">Nomor Absen Nilai</div></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('input')">
+        <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        Input Nilai
+      </div>
+      <div class="nav-item" onclick="showPage('data')">
+        <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        Data Nilai
+      </div>
+      <div class="nav-item" onclick="showPage('add-student')">
+        <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7l9-4-9-4v-3l11 5-11 5z"/></svg>
+        Tambah Siswa
+      </div>
+      <div class="nav-item" onclick="showPage('edit-grades')">
+        <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        Edit Nilai
+      </div>
+      <div class="nav-item print-nav" onclick="showPage('print')">
+        <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+        Cetak / Print
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-item" onclick="showPage('about')">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        Tentang
+      </div>
+    </nav>
+  </div>
+
+  <div class="content">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Input Nilai</span>
+      <button class="btn-print-top" onclick="showPage('print')">
+        <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+        Cetak
+      </button>
+    </div>
+
+    <!-- INPUT -->
+    <div class="page active" id="page-input">
+      <div class="form-card">
+        <div class="form-title">Input Nilai Siswa</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kelas</label>
+            <select class="form-select" id="input-kelas">
+              <option>XI-1</option><option>XI-2</option><option>XI-3</option>
+              <option>XI-4</option><option>XI-5</option><option>XI-6</option>
+              <option>XI-7</option><option>XI-8</option><option>XI-9</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jenis Nilai</label>
+            <select class="form-select" id="jenis-nilai">
+              <option>Tugas</option><option>UTS</option><option>UAS</option><option>Ulangan Harian</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nomor Absen</label>
+            <div class="input-group">
+              <input class="form-input" id="absen-input" type="number" placeholder="No. absen..." oninput="cariSiswa()" style="flex:1;" />
+              <button class="btn-search" onclick="cariSiswa()">Cari</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nilai</label>
+            <input class="form-input" id="nilai-input" type="number" min="0" max="100" placeholder="0 – 100" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nama Siswa</label>
+          <input class="form-input highlight" id="nama-siswa" type="text" placeholder="Nama akan muncul otomatis..." readonly />
+        </div>
+        <button class="btn-save" onclick="simpanNilai()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+          Simpan Nilai
+        </button>
+        <div class="info-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Nilai akan disimpan langsung ke Daftar.
+        </div>
+        <div class="toast" id="toast-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#065f46"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          Nilai berhasil disimpan!
+        </div>
+      </div>
+    </div>
+
+    <!-- TAMBAH SISWA -->
+    <div class="page" id="page-add-student">
+      <div class="form-card">
+        <div class="form-title">Tambah Siswa Baru</div>
+        
+        <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+          <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">Import dari Excel</div>
+          <div class="form-group">
+            <label class="form-label">Pilih File Excel (.xlsx, .xls, .csv)</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" onchange="updateFileLabel()" />
+              <label class="file-input-label" id="file-label-text">Klik untuk pilih file...</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kelas untuk Import (opsional, abaikan jika ada di file)</label>
+            <select class="form-select" id="import-kelas">
+              <option value="">-Otomatis dari file-</option>
+              <option>XI-1</option><option>XI-2</option><option>XI-3</option>
+              <option>XI-4</option><option>XI-5</option><option>XI-6</option>
+              <option>XI-7</option><option>XI-8</option><option>XI-9</option>
+            </select>
+          </div>
+          <button class="btn-save" onclick="importFromExcel()" style="background: #10b981;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Import Sekarang
+          </button>
+          <div class="toast" id="toast-import-success" style="background: #d1fae5; border-color: #6ee7b7; color: #065f46;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#065f46"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+            <span id="import-message"></span>
+          </div>
+          <div style="font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4;">
+            <strong>Format Excel yang didukung:</strong> Kolom A=Kelas, B=Absen, C=Nama (atau biarkan Kelas kosong untuk import ke kelas terpilih)
+          </div>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">atau Tambah Manual</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kelas</label>
+            <select class="form-select" id="add-kelas">
+              <option>XI-1</option><option>XI-2</option><option>XI-3</option>
+              <option>XI-4</option><option>XI-5</option><option>XI-6</option>
+              <option>XI-7</option><option>XI-8</option><option>XI-9</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nomor Absen</label>
+            <input class="form-input" id="add-absen" type="number" placeholder="No. absen..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nama Siswa</label>
+          <input class="form-input" id="add-nama" type="text" placeholder="Nama lengkap siswa..." />
+        </div>
+        <button class="btn-save" onclick="tambahSiswa()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Tambah Siswa
+        </button>
+        <div class="toast" id="toast-add-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#065f46"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          Siswa berhasil ditambahkan!
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA -->
+    <div class="page" id="page-data">
+      <div class="data-toolbar">
+        <input class="search-input" type="text" placeholder="Cari nama siswa..." oninput="filterSiswa(this.value)" />
+      </div>
+      <div class="kelas-tabs" id="kelas-tabs"></div>
+      <div class="kelas-info">
+        <span class="kelas-badge" id="kelas-badge">Kelas XI-1</span>
+        <span class="count-badge" id="count-badge"></span>
+      </div>
+      <div class="data-card">
+        <table>
+          <thead><tr><th>Absen</th><th>Nama Siswa</th><th>Tugas</th><th>UTS</th><th>UAS</th><th>Aksi</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div id="empty-state" class="empty-state" style="display:none;">Tidak ada siswa ditemukan.</div>
+        <div class="reload-row"><button class="edit-btn" onclick="renderTable()">Muat Ulang</button></div>
+      </div>
+    </div>
+
+    <!-- EDIT NILAI -->
+    <div class="page" id="page-edit-grades">
+      <div class="form-card">
+        <div class="form-title">Edit Struktur Nilai</div>
+        <div class="form-group">
+          <label class="form-label">Jenis Nilai Baru</label>
+          <input class="form-input" id="new-grade-type" type="text" placeholder="Contoh: Tugas 1, Tugas 2, dll." />
+        </div>
+        <button class="btn-save" onclick="tambahKolomNilai()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Tambah Kolom Nilai
+        </button>
+        <div class="info-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Kolom nilai baru akan ditambahkan ke tabel data.
+        </div>
+        <div class="toast" id="toast-edit-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#065f46"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          Kolom nilai berhasil ditambahkan!
+        </div>
+      </div>
+    </div>
+
+    <!-- PRINT PAGE -->
+    <div class="page" id="page-print">
+      <div class="print-wrap">
+        <div class="print-card">
+          <div class="print-card-title">
+            <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+            Pengaturan Cetak
+          </div>
+          <div class="print-opts">
+            <div>
+              <div class="popt-label">Pilih Kelas</div>
+              <select class="popt-select" id="print-kelas" onchange="updatePreview()">
+                <option value="SEMUA">Semua Kelas</option>
+                <option>XI-1</option><option>XI-2</option><option>XI-3</option>
+                <option>XI-4</option><option>XI-5</option><option>XI-6</option>
+                <option>XI-7</option><option>XI-8</option><option>XI-9</option>
+              </select>
+            </div>
+            <div>
+              <div class="popt-label">Kolom Nilai</div>
+              <select class="popt-select" id="print-kolom" onchange="updatePreview()">
+                <option value="SEMUA">Semua (Tugas, UTS, UAS)</option>
+                <option value="tugas">Tugas</option>
+                <option value="uts">UTS</option>
+                <option value="uas">UAS</option>
+              </select>
+            </div>
+            <div>
+              <div class="popt-label">Urutan</div>
+              <select class="popt-select" id="print-urut" onchange="updatePreview()">
+                <option value="absen">Nomor Absen</option>
+                <option value="nama">Nama (A–Z)</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-do-print" onclick="doPrint()">
+            <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+            Cetak Sekarang
+          </button>
+        </div>
+        <div class="print-card">
+          <div class="preview-label">Pratinjau Dokumen</div>
+          <div id="print-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div class="page" id="page-about">
+      <div class="about-card">
+        <div class="about-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        </div>
+        <div class="about-name">NORAL</div>
+        <div class="about-sub">Nomor Absen Nilai</div>
+        <div class="about-version">v1.0</div>
+        <div class="about-desc">Aplikasi ini dibuat untuk membantu guru dalam menginput nilai siswa berdasarkan nomor absen dengan mudah dan efisien.</div>
+      </div>
+    </div>
+
+    <!-- HIDDEN PRINT AREA -->
+    <div id="print-area" style="display:none;" id="print-area">
+      <div id="print-area-inner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const allSiswa = {
+    'XI-1': [
+      {absen:1,nama:'Andi Pratama',tugas1:85,tugas2:78,tugas3:82},
+      {absen:2,nama:'Budi Santoso',tugas1:75,tugas2:70,tugas3:77},
+      {absen:3,nama:'Citra Anggrani',tugas1:88,tugas2:85,tugas3:90},
+      {absen:4,nama:'Dika Maulana',tugas1:70,tugas2:74,tugas3:76},
+      {absen:5,nama:'Dewi Lestari',tugas1:85,tugas2:null,tugas3:null},
+    ],
+    'XI-2': [
+      {absen:1,nama:'Fajar Nugroho',tugas1:90,tugas2:88,tugas3:91},
+      {absen:2,nama:'Gita Purnama',tugas1:72,tugas2:68,tugas3:74},
+      {absen:3,nama:'Hendra Wijaya',tugas1:65,tugas2:70,tugas3:68},
+      {absen:4,nama:'Indah Permata',tugas1:95,tugas2:92,tugas3:94},
+    ],
+    'XI-3': [
+      {absen:1,nama:'Joko Susilo',tugas1:78,tugas2:75,tugas3:80},
+      {absen:2,nama:'Kartika Sari',tugas1:83,tugas2:80,tugas3:85},
+      {absen:3,nama:'Luthfi Aditya',tugas1:60,tugas2:65,tugas3:62},
+    ],
+    'XI-4': [
+      {absen:1,nama:'Maya Safitri',tugas1:88,tugas2:90,tugas3:87},
+      {absen:2,nama:'Naufal Rizki',tugas1:76,tugas2:72,tugas3:78},
+      {absen:3,nama:'Olivia Riani',tugas1:91,tugas2:89,tugas3:93},
+      {absen:4,nama:'Pandu Wicaksono',tugas1:68,tugas2:70,tugas3:71},
+      {absen:5,nama:'Qori Amalia',tugas1:80,tugas2:82,tugas3:84},
+    ],
+    'XI-5': [
+      {absen:1,nama:'Rizka Rahayu',tugas1:74,tugas2:76,tugas3:75},
+      {absen:2,nama:'Sandi Pratama',tugas1:86,tugas2:84,tugas3:88},
+      {absen:3,nama:'Tari Anggraini',tugas1:92,tugas2:91,tugas3:95},
+    ],
+    'XI-6': [
+      {absen:1,nama:'Umar Hakim',tugas1:70,tugas2:68,tugas3:72},
+      {absen:2,nama:'Vina Kusuma',tugas1:85,tugas2:87,tugas3:86},
+    ],
+    'XI-7': [
+      {absen:1,nama:'Winda Aprilia',tugas1:89,tugas2:91,tugas3:90},
+      {absen:2,nama:'Xander Putra',tugas1:77,tugas2:75,tugas3:79},
+      {absen:3,nama:'Yoga Pratama',tugas1:83,tugas2:80,tugas3:82},
+      {absen:4,nama:'Zahra Nadia',tugas1:96,tugas2:94,tugas3:97},
+    ],
+    'XI-8': [
+      {absen:1,nama:'Aditya Farhan',tugas1:71,tugas2:69,tugas3:73},
+      {absen:2,nama:'Bella Ananda',tugas1:88,tugas2:90,tugas3:89},
+      {absen:3,nama:'Chandra Gunawan',tugas1:65,tugas2:63,tugas3:67},
+    ],
+    'XI-9': [
+      {absen:1,nama:'Dian Permatasari',tugas1:93,tugas2:95,tugas3:94},
+      {absen:2,nama:'Elsa Fitriani',tugas1:80,tugas2:78,tugas3:82},
+      {absen:3,nama:'Fauzan Habibi',tugas1:74,tugas2:72,tugas3:76},
+      {absen:4,nama:'Gilang Ramadhan',tugas1:87,tugas2:85,tugas3:88},
+    ],
+  };
+
+  const kelasList = Object.keys(allSiswa);
+  let activeKelas = 'XI-1', searchQuery = '';
+  let gradeColumns = ['tugas1', 'tugas2', 'tugas3']; // Kolom nilai default
+  const gradeLabels = { tugas1: 'Tugas 1', tugas2: 'Tugas 2', tugas3: 'Tugas 3' };
+
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    const allNav = document.querySelectorAll('.nav-item');
+    if (name==='input') allNav[0].classList.add('active');
+    if (name==='data')  allNav[1].classList.add('active');
+    if (name==='add-student') allNav[2].classList.add('active');
+    if (name==='edit-grades') allNav[3].classList.add('active');
+    if (name==='print') allNav[4].classList.add('active');
+    if (name==='about') allNav[5].classList.add('active');
+    const titles = {input:'Input Nilai',data:'Data Nilai', 'add-student':'Tambah Siswa', 'edit-grades':'Edit Nilai', print:'Cetak / Print',about:'Tentang Aplikasi'};
+    document.getElementById('topbar-title').textContent = titles[name];
+    if (name==='data')  { buildTabs(); renderTable(); }
+    if (name==='print') updatePreview();
+  }
+
+  function buildTabs() {
+    document.getElementById('kelas-tabs').innerHTML = kelasList.map(k =>
+      `<button class="kelas-tab ${k===activeKelas?'active':''}" onclick="selectKelas('${k}')">${k}</button>`
+    ).join('');
+  }
+  function selectKelas(k) {
+    activeKelas=k; searchQuery='';
+    document.querySelector('.search-input').value='';
+    buildTabs(); renderTable();
+  }
+  function renderTable() {
+    const filtered = (allSiswa[activeKelas]||[]).filter(s=>s.nama.toLowerCase().includes(searchQuery.toLowerCase()));
+    document.getElementById('kelas-badge').textContent = 'Kelas '+activeKelas;
+    document.getElementById('count-badge').textContent = filtered.length+' siswa';
+    const empty = document.getElementById('empty-state');
+    if (!filtered.length) { document.getElementById('table-body').innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    const header = '<tr><th>Absen</th><th>Nama Siswa</th>' + gradeColumns.map(col => `<th>${gradeLabels[col]||col}</th>`).join('') + '<th>Aksi</th></tr>';
+    document.querySelector('#page-data table thead').innerHTML = header;
+    document.getElementById('table-body').innerHTML = filtered.map(s=>`
+      <tr><td>${s.absen}</td><td>${s.nama}</td>${gradeColumns.map(col => `<td>${s[col]??'-'}</td>`).join('')}<td><button class="edit-btn" onclick="editSiswa('${activeKelas}',${s.absen})">Edit</button></td></tr>`).join('');
+  }
+  function filterSiswa(q) { searchQuery=q; renderTable(); }
+  function cariSiswa() {
+    const kelas=document.getElementById('input-kelas').value;
+    const no=parseInt(document.getElementById('absen-input').value);
+    const s=(allSiswa[kelas]||[]).find(s=>s.absen===no);
+    const el=document.getElementById('nama-siswa');
+    if(s){el.value=s.nama;el.style.background='#f0fdf4';el.style.borderColor='#4ade80';}
+    else{el.value=no?'Siswa tidak ditemukan':'';el.style.background='';el.style.borderColor='';}
+  }
+  function simpanNilai() {
+    const kelas=document.getElementById('input-kelas').value;
+    const no=parseInt(document.getElementById('absen-input').value);
+    const s=(allSiswa[kelas]||[]).find(s=>s.absen===no);
+    const nilai=parseInt(document.getElementById('nilai-input').value);
+    const jenis=document.getElementById('jenis-nilai').value.toLowerCase().replace(/\s+/g, '');
+    if(!s){alert('Nomor absen tidak ditemukan.');return;}
+    if(isNaN(nilai)||nilai<0||nilai>100){alert('Masukkan nilai yang valid (0–100).');return;}
+    if (!gradeColumns.includes(jenis)) {
+      alert('Jenis nilai tidak valid.');
+      return;
+    }
+    s[jenis]=nilai;
+    const t=document.getElementById('toast-success');
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500);
+  }
+  function editSiswa(kelas,absen) {
+    document.getElementById('input-kelas').value=kelas;
+    document.getElementById('absen-input').value=absen;
+    showPage('input'); cariSiswa();
+  }
+
+  function tambahSiswa() {
+    const kelas = document.getElementById('add-kelas').value;
+    const absen = parseInt(document.getElementById('add-absen').value);
+    const nama = document.getElementById('add-nama').value.trim();
+    if (!nama || isNaN(absen) || absen < 1) {
+      alert('Masukkan nomor absen dan nama yang valid.');
+      return;
+    }
+    if (!allSiswa[kelas]) allSiswa[kelas] = [];
+    const exists = allSiswa[kelas].find(s => s.absen === absen);
+    if (exists) {
+      alert('Nomor absen sudah ada di kelas ini.');
+      return;
+    }
+    const newSiswa = { absen, nama };
+    gradeColumns.forEach(col => newSiswa[col] = null);
+    allSiswa[kelas].push(newSiswa);
+    allSiswa[kelas].sort((a,b) => a.absen - b.absen);
+    document.getElementById('add-nama').value = '';
+    const t = document.getElementById('toast-add-success');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function updateFileLabel() {
+    const fileInput = document.getElementById('excel-file');
+    const label = document.getElementById('file-label-text');
+    if (fileInput.files.length > 0) {
+      label.textContent = '✓ ' + fileInput.files[0].name;
+      label.classList.add('has-file');
+    } else {
+      label.textContent = 'Klik untuk pilih file...';
+      label.classList.remove('has-file');
+    }
+  }
+
+  function importFromExcel() {
+    const fileInput = document.getElementById('excel-file');
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('Pilih file Excel terlebih dahulu.');
+      return;
+    }
+    
+    // Cek apakah XLSX library sudah ter-load
+    if (typeof XLSX === 'undefined') {
+      alert('Perpustakaan XLSX sedang dimuat. Coba lagi dalam beberapa detik.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        
+        if (rows.length === 0) {
+          alert('File Excel kosong atau tidak valid.');
+          return;
+        }
+        
+        const defaultKelas = document.getElementById('import-kelas').value;
+        let imported = 0, skipped = 0;
+        
+        for (let row of rows) {
+          // Cari kolom dengan fleksibel (case-insensitive, trimmed)
+          let kelas = null, absen = null, nama = null;
+          
+          for (let key in row) {
+            const keyLower = String(key).toLowerCase().trim();
+            const val = row[key];
+            
+            if (keyLower.includes('kelas')) kelas = String(val || '').trim();
+            if (keyLower.includes('absen')) absen = parseInt(val);
+            if (keyLower.includes('nama')) nama = String(val || '').trim();
+          }
+          
+          // Jika tidak ada kelas di file, gunakan default
+          if (!kelas) kelas = defaultKelas;
+          
+          // Validasi data
+          if (!kelas || isNaN(absen) || absen < 1 || !nama) {
+            skipped++;
+            continue;
+          }
+          
+          // Inisialisasi kelas jika belum ada
+          if (!allSiswa[kelas]) {
+            allSiswa[kelas] = [];
+            kelasList.push(kelas);
+          }
+          
+          // Cek duplikasi
+          if (allSiswa[kelas].find(s => s.absen === absen)) {
+            skipped++;
+            continue;
+          }
+          
+          // Tambah siswa baru
+          const newSiswa = { absen, nama };
+          gradeColumns.forEach(col => newSiswa[col] = null);
+          allSiswa[kelas].push(newSiswa);
+          imported++;
+        }
+        
+        // Sort data
+        Object.values(allSiswa).forEach(kelas => kelas.sort((a,b) => a.absen - b.absen));
+        
+        // Reset form
+        document.getElementById('excel-file').value = '';
+        
+        if (imported === 0) {
+          alert('Tidak ada siswa yang berhasil diimport. Periksa format file.');
+          return;
+        }
+        
+        // Tampilkan pesan sukses
+        document.getElementById('import-message').textContent = 
+          `✓ ${imported} siswa berhasil diimport!${skipped > 0 ? ` (${skipped} baris dilewati)` : ''}`;
+        const toast = document.getElementById('toast-import-success');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+        
+        // Update tabel jika sedang di halaman data
+        if (document.getElementById('page-data').classList.contains('active')) {
+          buildTabs();
+          renderTable();
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Error membaca file: ' + err.message + '\n\nPastikan file format Excel (.xlsx atau .xls) dan memiliki kolom: Absen, Nama');
+      }
+    };
+    
+    reader.readAsBinaryString(file);
+  }
+ 
+  function tambahKolomNilai() {
+    const newLabel = document.getElementById('new-grade-type').value.trim();
+    const newCol = newLabel.toLowerCase().replace(/\s+/g, '');
+    if (!newLabel) {
+      alert('Masukkan jenis nilai baru.');
+      return;
+    }
+    if (gradeColumns.includes(newCol)) {
+      alert('Kolom nilai sudah ada.');
+      return;
+    }
+    gradeColumns.push(newCol);
+    // Tambahkan properti ke semua siswa
+    Object.values(allSiswa).forEach(kelas => kelas.forEach(s => s[newCol] = null));
+    gradeLabels[newCol] = newLabel;
+    document.getElementById('new-grade-type').value = '';
+    const t = document.getElementById('toast-edit-success');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+    renderGradeOptions();
+    // Update tabel jika di halaman data
+    if (document.getElementById('page-data').classList.contains('active')) {
+      renderTable();
+    }
+  }
+
+  function renderGradeOptions() {
+    const jenisSelect = document.getElementById('jenis-nilai');
+    jenisSelect.innerHTML = gradeColumns.map(col => `<option value="${col}">${gradeLabels[col]||col}</option>`).join('');
+    const printSelect = document.getElementById('print-kolom');
+    const currentValue = printSelect.value;
+    const allLabel = gradeColumns.map(col => gradeLabels[col]||col).join(', ');
+    printSelect.innerHTML = `<option value="SEMUA">Semua (${allLabel})</option>` + gradeColumns.map(col => `<option value="${col}">${gradeLabels[col]||col}</option>`).join('');
+    if (gradeColumns.includes(currentValue)) {
+      printSelect.value = currentValue;
+    } else {
+      printSelect.value = 'SEMUA';
+    }
+  }
+  // ---- PRINT ----
+  function getDataForPrint() {
+    const pK=document.getElementById('print-kelas').value;
+    const pU=document.getElementById('print-urut').value;
+    let rows=[];
+    (pK==='SEMUA'?kelasList:[pK]).forEach(k=>(allSiswa[k]||[]).forEach(s=>rows.push({...s,kelas:k})));
+    return pU==='nama' ? rows.sort((a,b)=>a.nama.localeCompare(b.nama))
+                       : rows.sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.absen-b.absen);
+  }
+  function buildPrintTable(data, kolom, showKelas) {
+    const now=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+    let hdr=`<th>No</th><th>Absen</th>${showKelas?'<th>Kelas</th>':''}<th>Nama Siswa</th>`;
+    if (kolom==='SEMUA') {
+      hdr += gradeColumns.map(col => `<th>${gradeLabels[col]||col}</th>`).join('');
+    } else {
+      hdr += `<th>${gradeLabels[kolom]||kolom}</th>`;
+    }
+    const body=data.map((s,i)=>{
+      const cols = kolom==='SEMUA'
+        ? gradeColumns.map(col => `<td>${s[col]??'-'}</td>`).join('')
+        : `<td>${s[kolom]??'-'}</td>`;
+      return `<tr><td>${i+1}</td><td>${s.absen}</td>${showKelas?`<td>${s.kelas}</td>`:''}<td>${s.nama}</td>${cols}</tr>`;
+    }).join('');
+    return `<p class="preview-meta">Dicetak: ${now} &nbsp;|&nbsp; Total: ${data.length} siswa</p>
+      <table><thead><tr>${hdr}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+  function updatePreview() {
+    const data=getDataForPrint();
+    const kolom=document.getElementById('print-kolom').value;
+    const showK=document.getElementById('print-kelas').value==='SEMUA';
+    document.getElementById('print-preview').innerHTML=buildPrintTable(data,kolom,showK);
+  }
+  function doPrint() {
+    const data=getDataForPrint();
+    const kolom=document.getElementById('print-kolom').value;
+    const pK=document.getElementById('print-kelas').value;
+    const showK=pK==='SEMUA';
+    const kLabel = { SEMUA:'Semua Nilai' };
+    gradeColumns.forEach(col => kLabel[col] = gradeLabels[col]||col);
+    const now=new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+    document.getElementById('print-area-inner').innerHTML=`
+      <div class="pdoc-title">NORAL – Daftar Nilai Siswa</div>
+      <div class="pdoc-sub">Kelas: ${pK==='SEMUA'?'Semua Kelas':pK} &nbsp;|&nbsp; Nilai: ${kLabel[kolom]} &nbsp;|&nbsp; Tanggal: ${now}</div>
+      <hr class="pdoc-line" />
+      ${buildPrintTable(data,kolom,showK)}
+      <div class="pdoc-footer">Dicetak menggunakan NORAL v1.0</div>`;
+    document.getElementById('print-area').style.display='block';
+    window.print();
+    setTimeout(()=>{ document.getElementById('print-area').style.display='none'; },500);
+  }
+
+  window.addEventListener('load', () => {
+    renderGradeOptions();
+    buildTabs();
+    renderTable();
+    updatePreview();
+  });
+</script>
+</body>
+</html>
